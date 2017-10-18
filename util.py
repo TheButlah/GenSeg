@@ -45,13 +45,22 @@ def batch_norm(x, shape, phase_train, scope='BN'):
     return normed
 
 
+def dropout(x, phase_train, keep_prob=0.5, seed=None, name='Dropout'):
+    with tf.variable_scope(name):
+        keep_prob_tensor = tf.cond(phase_train, lambda: tf.constant(keep_prob), lambda: tf.constant(1.0))
+        dims = tf.unstack(tf.shape(x))
+        dims[1:-1] = [1] * (len(dims)-2)
+        shape = tf.stack(dims)
+        return tf.nn.dropout(x, keep_prob_tensor, shape, seed=seed)
+
+
 def conv(x, input_shape, num_features, phase_train, do_bn=True, do_fn=True, size=3, seed=None, scope='Conv'):
     with tf.variable_scope(scope):
         kernel_shape = [size]*(len(input_shape)-2)
         kernel_shape.append(input_shape[-1])
         kernel_shape.append(num_features)
         # example: input_shape is BHWC, kernel_shape is [3,3,D,num_features]
-        kernel = tf.Variable(tf.random_normal(kernel_shape, seed=seed, name='Kernel'))
+        kernel = tf.Variable(tf.truncated_normal(kernel_shape, seed=seed, name='Kernel'))
         convolved = tf.nn.convolution(x, kernel, padding="SAME", name='Conv')
         convolved_shape = list(input_shape)
         convolved_shape[-1] = num_features

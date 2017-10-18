@@ -56,8 +56,9 @@ class GenSeg:
                 conv1_1, last_shape = conv(x_norm, x_shape, num_features, self._phase_train, seed=seed, scope='Conv1_1')
                 conv1_2, last_shape = conv(conv1_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv1_2')
                 pool1, last_shape, mask1 = pool(conv1_2, last_shape, scope='Pool1')
+                drop1 = dropout(pool1, self._phase_train)
 
-                conv2_1, last_shape = conv(pool1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv2_1')
+                conv2_1, last_shape = conv(drop1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv2_1')
                 conv2_2, last_shape = conv(conv2_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv2_2')
                 pool2, last_shape, mask2 = pool(conv2_2, last_shape, scope='Pool2')
 
