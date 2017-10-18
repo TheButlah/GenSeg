@@ -14,7 +14,7 @@ datareader_params = ('data/', (352, 1216, 3), np.array([0, -32, -16]), np.array(
 
 def main():
     number = int(sys.argv[1])
-    name = 'saved/Long7-Lab-Fixed.ckpt'
+    name = 'saved/Dropout.ckpt'
     if number is 2: test2(name)
     elif number is 3: test3(name)
     elif number is 4: test4(name)

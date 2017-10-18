@@ -56,39 +56,47 @@ class GenSeg:
                 conv1_1, last_shape = conv(x_norm, x_shape, num_features, self._phase_train, seed=seed, scope='Conv1_1')
                 conv1_2, last_shape = conv(conv1_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv1_2')
                 pool1, last_shape, mask1 = pool(conv1_2, last_shape, scope='Pool1')
-                drop1 = dropout(pool1, self._phase_train)
+                drop1 = dropout(pool1, self._phase_train, seed=seed, name='Drop1')
 
                 conv2_1, last_shape = conv(drop1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv2_1')
                 conv2_2, last_shape = conv(conv2_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv2_2')
                 pool2, last_shape, mask2 = pool(conv2_2, last_shape, scope='Pool2')
+                drop2 = dropout(pool2, self._phase_train, seed=seed, name='Drop2')
 
-                conv3_1, last_shape = conv(pool2, last_shape, num_features, self._phase_train, seed=seed, scope='Conv3_1')
+                conv3_1, last_shape = conv(drop2, last_shape, num_features, self._phase_train, seed=seed, scope='Conv3_1')
                 conv3_2, last_shape = conv(conv3_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv3_2')
                 pool3, last_shape, mask3 = pool(conv3_2, last_shape, scope='Pool3')
+                drop3 = dropout(pool3, self._phase_train, seed=seed, name='Drop3')
 
-                conv4_1, last_shape = conv(pool3, last_shape, num_features, self._phase_train, seed=seed, scope='Conv4_1')
+                conv4_1, last_shape = conv(drop3, last_shape, num_features, self._phase_train, seed=seed, scope='Conv4_1')
                 conv4_2, last_shape = conv(conv4_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv4_2')
                 pool4, last_shape, mask4 = pool(conv4_2, last_shape, scope='Pool4')
+                drop4 = dropout(pool4, self._phase_train, seed=seed, name='Drop4')
 
             with tf.variable_scope('Decoder'):
-                unpool5, last_shape = unpool(pool4, last_shape, mask4, scope='Unpool5')
+                unpool5, last_shape = unpool(drop4, last_shape, mask4, scope='Unpool5')
                 conv5_1, last_shape = conv(unpool5, last_shape, num_features, self._phase_train, seed=seed, scope='Conv5_1')
                 conv5_2, last_shape = conv(conv5_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv5_2')
+                drop5 = dropout(conv5_2, self._phase_train, seed=seed, name='Drop5')
 
-                unpool6, last_shape = unpool(conv5_2, last_shape, mask3, scope='Unpool6')
+                unpool6, last_shape = unpool(drop5, last_shape, mask3, scope='Unpool6')
                 conv6_1, last_shape = conv(unpool6, last_shape, num_features, self._phase_train, seed=seed, scope='Conv6_1')
                 conv6_2, last_shape = conv(conv6_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv6_2')
+                drop6 = dropout(conv6_2, self._phase_train, seed=seed, name='Drop6')
 
-                unpool7, last_shape = unpool(conv6_2, last_shape, mask2, scope='Unpool7')
+                unpool7, last_shape = unpool(drop6, last_shape, mask2, scope='Unpool7')
                 conv7_1, last_shape = conv(unpool7, last_shape, num_features, self._phase_train, seed=seed, scope='Conv7_1')
                 conv7_2, last_shape = conv(conv7_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv7_2')
+                drop7 = dropout(conv7_2, self._phase_train, seed=seed, name='Drop7')
 
-                unpool8, last_shape = unpool(conv7_2, last_shape, mask1, scope='Unpool8')
+                unpool8, last_shape = unpool(drop7, last_shape, mask1, scope='Unpool8')
                 conv8_1, last_shape = conv(unpool8, last_shape, num_features, self._phase_train, seed=seed, scope='Conv8_1')
                 conv8_2, last_shape = conv(conv8_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv8_2')
+                drop8 = dropout(conv8_2, self._phase_train, seed=seed, name='Drop8')
+
 
             with tf.variable_scope('Softmax'):
-                scores, _ = conv(conv8_2, last_shape, num_classes, self._phase_train,
+                scores, _ = conv(drop8, last_shape, num_classes, self._phase_train,
                                  do_bn=False, do_fn=False, size=1, seed=seed, scope='Scores')
                 self._y_hat = tf.nn.softmax(scores, name='Y-Hat')  # Operates on last dimension
 

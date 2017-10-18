@@ -47,11 +47,17 @@ def batch_norm(x, shape, phase_train, scope='BN'):
 
 def dropout(x, phase_train, keep_prob=0.5, seed=None, name='Dropout'):
     with tf.variable_scope(name):
-        keep_prob_tensor = tf.cond(phase_train, lambda: tf.constant(keep_prob), lambda: tf.constant(1.0))
-        dims = tf.unstack(tf.shape(x))
-        dims[1:-1] = [1] * (len(dims)-2)
-        shape = tf.stack(dims)
-        return tf.nn.dropout(x, keep_prob_tensor, shape, seed=seed)
+
+        def train():
+            dims = tf.unstack(tf.shape(x))
+            dims[1:-1] = [1] * (len(dims) - 2)
+            shape = tf.stack(dims)  # [batch, 1, 1, ..., 1, features] so that all spatial dims are dropped together
+            return tf.nn.dropout(x, keep_prob, shape, seed=seed, name='Train-Output')
+
+        def test():
+            return tf.identity(x, name='Test-Output')
+
+        return tf.cond(phase_train, train, test)
 
 
 def conv(x, input_shape, num_features, phase_train, do_bn=True, do_fn=True, size=3, seed=None, scope='Conv'):
