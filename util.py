@@ -45,7 +45,7 @@ def batch_norm(x, shape, phase_train, scope='BN'):
     return normed
 
 
-def conv(x, input_shape, num_features, phase_train, do_bn=True, size=3, seed=None, scope='Conv'):
+def conv(x, input_shape, num_features, phase_train, do_bn=True, do_fn=True, size=3, seed=None, scope='Conv'):
     with tf.variable_scope(scope):
         kernel_shape = [size]*(len(input_shape)-2)
         kernel_shape.append(input_shape[-1])
@@ -57,14 +57,17 @@ def conv(x, input_shape, num_features, phase_train, do_bn=True, size=3, seed=Non
         convolved_shape[-1] = num_features
         # example: input_shape is BHWC, convolved_shape is [B,H,W,num_features]
         if do_bn:
-            return relu(batch_norm(convolved, convolved_shape, phase_train)), convolved_shape
+            scores = batch_norm(convolved, convolved_shape, phase_train)
         else:
-            return relu(convolved), convolved_shape
+            scores = convolved
+        if do_fn:
+            return relu(scores), convolved_shape
+        else:
+            return scores, convolved_shape
 
 
-def relu(x, scope='Relu'):
-    with tf.variable_scope(scope):
-        return tf.nn.relu(x, name='Relu')
+def relu(x, name='ReLU'):
+    return tf.nn.relu(x, name=name)
 
 
 def pool(x, input_shape, scope='Pool'):

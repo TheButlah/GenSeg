@@ -87,7 +87,8 @@ class GenSeg:
                 conv8_2, last_shape = conv(conv8_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv8_2')
 
             with tf.variable_scope('Softmax'):
-                scores, _ = conv(conv8_2, last_shape, num_classes, self._phase_train, do_bn=False, size=1, seed=seed, scope='Scores')
+                scores, _ = conv(conv8_2, last_shape, num_classes, self._phase_train,
+                                 do_bn=False, do_fn=False, size=1, seed=seed, scope='Scores')
                 self._y_hat = tf.nn.softmax(scores, name='Y-Hat')  # Operates on last dimension
 
             with tf.variable_scope('Pipelining'):
