@@ -54,28 +54,20 @@ class GenSeg:
 
             with tf.variable_scope('Encoder'):
                 conv1_1, last_shape = conv(x_norm, x_shape, num_features, self._phase_train, seed=seed, scope='Conv1_1')
-                relu1_1 = relu(conv1_1, scope='Relu1_1')
-                conv1_2, last_shape = conv(relu1_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv1_2')
-                relu1_2 = relu(conv1_2, scope='Relu1_2')
-                pool1, last_shape, mask1 = pool(relu1_2, last_shape, scope='Pool1')
+                conv1_2, last_shape = conv(conv1_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv1_2')
+                pool1, last_shape, mask1 = pool(conv1_2, last_shape, scope='Pool1')
 
                 conv2_1, last_shape = conv(pool1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv2_1')
-                relu2_1 = relu(conv2_1, scope='Relu2_1')
-                conv2_2, last_shape = conv(relu2_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv2_2')
-                relu2_2 = relu(conv2_2, scope='Relu2_2')
-                pool2, last_shape, mask2 = pool(relu2_2, last_shape, scope='Pool2')
+                conv2_2, last_shape = conv(conv2_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv2_2')
+                pool2, last_shape, mask2 = pool(conv2_2, last_shape, scope='Pool2')
 
                 conv3_1, last_shape = conv(pool2, last_shape, num_features, self._phase_train, seed=seed, scope='Conv3_1')
-                relu3_1 = relu(conv3_1, scope='Relu3_1')
-                conv3_2, last_shape = conv(relu3_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv3_2')
-                relu3_2 = relu(conv3_2, scope='Relu3_2')
-                pool3, last_shape, mask3 = pool(relu3_2, last_shape, scope='Pool3')
+                conv3_2, last_shape = conv(conv3_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv3_2')
+                pool3, last_shape, mask3 = pool(conv3_2, last_shape, scope='Pool3')
 
                 conv4_1, last_shape = conv(pool3, last_shape, num_features, self._phase_train, seed=seed, scope='Conv4_1')
-                relu4_1 = relu(conv4_1, scope='Relu4_1')
-                conv4_2, last_shape = conv(relu4_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv4_2')
-                relu4_2 = relu(conv4_2, scope='Relu4_2')
-                pool4, last_shape, mask4 = pool(relu4_2, last_shape, scope='Pool4')
+                conv4_2, last_shape = conv(conv4_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv4_2')
+                pool4, last_shape, mask4 = pool(conv4_2, last_shape, scope='Pool4')
 
             with tf.variable_scope('Decoder'):
                 unpool5, last_shape = unpool(pool4, last_shape, mask4, scope='Unpool5')
@@ -200,4 +192,3 @@ class GenSeg:
             save_path = os.path.abspath(save_path)
             path = self._saver.save(self._sess, save_path)
             print("Model successfully saved in file: %s" % path)
-

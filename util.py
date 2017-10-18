@@ -57,9 +57,9 @@ def conv(x, input_shape, num_features, phase_train, do_bn=True, size=3, seed=Non
         convolved_shape[-1] = num_features
         # example: input_shape is BHWC, convolved_shape is [B,H,W,num_features]
         if do_bn:
-            return batch_norm(convolved, convolved_shape, phase_train), convolved_shape
+            return relu(batch_norm(convolved, convolved_shape, phase_train)), convolved_shape
         else:
-            return convolved, convolved_shape
+            return relu(convolved), convolved_shape
 
 
 def relu(x, scope='Relu'):
