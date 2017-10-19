@@ -14,7 +14,7 @@ datareader_params = ('data/', (352, 1216, 3), np.array([0, -32, -16]), np.array(
 
 def main():
     number = int(sys.argv[1])
-    name = 'saved/Dropout.ckpt'
+    name = 'saved/Dropout-18-10-17-1.ckpt'
     if number is 2: test2(name)
     elif number is 3: test3(name)
     elif number is 4: test4(name)
@@ -22,6 +22,7 @@ def main():
 
 
 def test4(name):
+    """Render results"""
     rcParams['figure.figsize'] = 40, 15
     input_shape = [None, 176, 608, 3]
 
@@ -60,6 +61,7 @@ def test4(name):
 
 
 def test3(name):
+    """Calculate average accuracy"""
     input_shape = [None, 176, 608, 3]
 
     dr = DataReader(*datareader_params)
@@ -87,6 +89,7 @@ def test3(name):
 
 
 def test2(name):
+    """Test on selected testing images"""
     filenames = [
         'data/image_data/testing/0000/000000.png',
         'data/image_data/testing/0000/000040.png',
@@ -112,7 +115,7 @@ def test2(name):
     model = GenSeg(input_shape=[None, h, w, c], num_classes=num_classes, load_model=name)
     result = model.apply(image_data)
     result = np.argmax(result, axis=-1)
-
+    
     '''for img in result:
         plt.figure()
         plt.imshow(img.astype(np.uint8))
@@ -121,7 +124,7 @@ def test2(name):
     colored = np.empty(shape)
 
     for (i, x, y), value in np.ndenumerate(result):
-        colored[i, x, y] = get_color(list(label_to_original(value)))
+        colored[i, x, y] = get_color(label_to_original(value))
 
     i = 0
     for img in colored:
@@ -134,6 +137,7 @@ def test2(name):
 
 
 def test1(name):
+    """Train the model"""
     input_shape = [None, 176, 608, 3]
 
     dr = DataReader(*datareader_params)
@@ -142,7 +146,7 @@ def test1(name):
     func = np.vectorize(original_to_label)
     y = func(y)
     n, _, _, _ = x.shape
-    batch_size = 30
+    batch_size = 20
     iterations = sys.maxsize
 
     model = GenSeg(input_shape=input_shape, num_classes=num_classes, load_model=name)
