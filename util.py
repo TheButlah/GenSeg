@@ -315,6 +315,9 @@ def label_to_original(label):
         5: 8  # cyclist
     }.get(label, 0)
 
+def variance_color(original):
+    return [label * 255, label * 255, label * 255]
+
 
 def get_color(original):  # function to map ints to RGB array
     return {
