@@ -248,6 +248,10 @@ def test1(name):
             num_epochs=1, start_stop_info=False, progress_info=False
         ))
 
+        if iteration % 500 == 0:
+            print("Saving checkpoint")
+            model.save_model(name)
+
 
 if __name__ == "__main__":
     main()
