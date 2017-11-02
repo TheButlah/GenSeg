@@ -4,7 +4,7 @@ import sys
 import atexit
 
 from model import GenSeg
-from util import DataReader, original_to_label, label_to_original, get_color, normalize_img
+from util import DataReader, original_to_label, label_to_original, get_color, normalize_img, variance_color
 from scipy.misc import imread, imsave
 from pylab import rcParams
 
@@ -48,7 +48,7 @@ def test6(name):
 
     model = GenSeg(input_shape=[None, h, w, c], num_classes=num_classes, load_model=name)
     result = model.apply(image_data)
-    variance = np.var(results, axis=-1)
+    variance = np.var(result, axis=-1)
 
     '''for img in result:
         plt.figure()
@@ -57,7 +57,7 @@ def test6(name):
 
     colored = np.empty(shape)
 
-    for (i, x, y), value in np.ndenumerate(result):
+    for (i, x, y), value in np.ndenumerate(variance):
         colored[i, x, y] = variance_color(value)
 
     i = 0

@@ -316,7 +316,7 @@ def label_to_original(label):
     }.get(label, 0)
 
 def variance_color(original):
-    return [label * 255, label * 255, label * 255]
+    return [255 - original * 255, 255 - original * 255, 255 - original * 255]
 
 
 def get_color(original):  # function to map ints to RGB array
