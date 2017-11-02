@@ -19,7 +19,55 @@ def main():
     elif number is 3: test3(name)
     elif number is 4: test4(name)
     elif number is 5: test5(name)
+    elif number is 6: test6(name)
     else: test1(name)
+
+def test6(name):
+    """Test on selected testing images"""
+    filenames = [
+        'data/image_data/testing/0000/000000.png',
+        'data/image_data/testing/0000/000040.png',
+        'data/image_data/testing/0004/000000.png',
+        'data/image_data/testing/0005/000020.png',
+        'data/image_data/testing/0005/000240.png'
+    ]
+    shape = (len(filenames), 176, 608, 3)
+    n, h, w, c = shape
+    image_data = np.zeros((n, h, w, c))
+
+    i = 0
+    for f in filenames:
+        image = normalize_img(imread(f))  # Fix brightness and convert to lab colorspace
+        image_data[i, :, :, :] = image[:h*2:2, :w*2:2, :]
+        '''plt.figure()
+        plt.imshow(image_data[i])
+        plt.figure()
+        plt.imshow(lab2rgb(image_data[i]))
+        plt.show()'''
+        i += 1
+
+    model = GenSeg(input_shape=[None, h, w, c], num_classes=num_classes, load_model=name)
+    result = model.apply(image_data)
+    variance = np.var(results, axis=-1)
+
+    '''for img in result:
+        plt.figure()
+        plt.imshow(img.astype(np.uint8))
+    plt.show()'''
+
+    colored = np.empty(shape)
+
+    for (i, x, y), value in np.ndenumerate(result):
+        colored[i, x, y] = variance_color(value)
+
+    i = 0
+    for img in colored:
+        img = img.astype(np.uint8, copy=False)
+        imsave('%d.png' % i, img, 'png')
+        '''plt.figure()
+        plt.imshow(img)
+        plt.show()'''
+        i += 1
 
 def test5(name):
     """Render results - variance"""
