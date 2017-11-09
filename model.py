@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
+from layers import *
 from time import time, strftime
 from util import *
 import os
@@ -53,8 +54,8 @@ class GenSeg:
                 x_norm = batch_norm(self._x, x_shape, self._phase_train, scope='X-Norm')
 
             with tf.variable_scope('Encoder'):
-                conv1_1, last_shape = conv(x_norm, x_shape, num_features, self._phase_train, seed=seed, scope='Conv1_1')
-                conv1_2, last_shape = conv(conv1_1, last_shape, num_features, self._phase_train, seed=seed, scope='Conv1_2')
+                conv1_1, _ = conv(x_norm, num_features, phase_train=self._phase_train, scope='Conv1_1')
+                conv1_2, _ = conv(conv1_1, num_features, phase_train=self._phase_train, scope='Conv1_2')
                 pool1, last_shape, mask1 = pool(conv1_2, last_shape, scope='Pool1')
                 drop1 = dropout(pool1, self._phase_train, seed=seed, name='Drop1')
 

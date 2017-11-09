@@ -1,4 +1,6 @@
-from pathlib import Path
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
 
 import tensorflow as tf
 import numpy as np
@@ -9,115 +11,53 @@ from skimage.exposure import equalize_adapthist
 from skimage.color import rgb2lab, lab2rgb
 
 
-def batch_norm(x, shape, phase_train, scope='BN'):
-    """
-    Batch normalization on convolutional maps.
-    Ref.: http://stackoverflow.com/questions/33949786/how-could-i-use-batch-normalization-in-tensorflow
-    Note: The original author's code has been modified to generalize the spatial dimensions of the input tensor.
+def upscale(x, factor=2):
+    """Upscales the shape of a N-Dimensional tensor by duplicating adjacent entries.
 
     Args:
-        x:           Tensor,  B...C input maps (e.g. BHWC or BXYZC)
-        shape:       Tuple, shape of input
-        phase_train: boolean tf.Variable, true indicates training phase
-        scope:       string, variable scope
-
+        x:      The tensor to upscale. Only the spatial dimensions (all but first and last dim) are upscaled.
+        factor: The factory by which to upscale. This should be an integer.
     Returns:
-        normed:      batch-normalized maps
+        The upscaled tensor. Shape will be multiplied by `factor` on each spatial dimension (all but first and last dim)
     """
+    x = tf.convert_to_tensor(x)
+    num_spatial = len(x.shape)-2
+    # Iterate over spatial dims in reverse order
+    for dim in range(num_spatial, 0, -1):
+        x_shape = x.shape.as_list()
+        print("dim:", dim)
+        print("x shape:", x_shape)
+        x = tf.expand_dims(x, dim+1)
+        tile_multiples = [1] * len(x.shape)
+        tile_multiples[dim+1] = factor
+        print("Tile multiples:", tile_multiples)
+        x = tf.tile(x, tile_multiples)
+        print("Tiled shape:", x.shape)
+        x_shape[0] = -1
+        x_shape[dim] *= factor
+        x = tf.reshape(x, x_shape)
+        print("Final shape:", x.shape)
+    return x
+
+
+def pool(x, scope='Pool'):
+    x = tf.convert_to_tensor(x)
     with tf.variable_scope(scope):
-        n_out = shape[-1]  # depth of input maps
-        beta = tf.Variable(tf.constant(0.0, shape=[n_out]),
-                           name='Beta', trainable=True)
-        gamma = tf.Variable(tf.constant(1.0, shape=[n_out]),
-                            name='Gamma', trainable=True)
-        batch_mean, batch_var = tf.nn.moments(x, list(range(len(shape[:-1]))), name='Moments')
-        ema = tf.train.ExponentialMovingAverage(decay=0.5)
-
-        def mean_var_with_update():
-            ema_apply_op = ema.apply([batch_mean, batch_var])
-            with tf.control_dependencies([ema_apply_op]):
-                return tf.identity(batch_mean), tf.identity(batch_var)
-
-        mean, var = tf.cond(phase_train,
-                            mean_var_with_update,
-                            lambda: (ema.average(batch_mean), ema.average(batch_var)))
-        normed = tf.nn.batch_normalization(x, mean, var, beta, gamma, 1e-3)
-    return normed
-
-
-def dropout(x, phase_train, keep_prob=0.5, seed=None, name='Dropout'):
-    with tf.variable_scope(name):
-
-        def train():
-            dims = tf.unstack(tf.shape(x))
-            dims[1:-1] = [1] * (len(dims) - 2)
-            shape = tf.stack(dims)  # [batch, 1, 1, ..., 1, features] so that all spatial dims are dropped together
-            return tf.nn.dropout(x, keep_prob, shape, seed=seed, name='Train-Output')
-
-        def test():
-            return tf.identity(x, name='Test-Output')
-
-        return tf.cond(phase_train, train, test)
-
-
-def conv(x, input_shape, num_features, phase_train, do_bn=True, do_fn=True, size=3, seed=None, scope='Conv'):
-    with tf.variable_scope(scope):
-        kernel_shape = [size]*(len(input_shape)-2)
-        kernel_shape.append(input_shape[-1])
-        kernel_shape.append(num_features)
-        # example: input_shape is BHWC, kernel_shape is [3,3,D,num_features]
-        kernel = tf.Variable(tf.truncated_normal(kernel_shape, seed=seed, name='Kernel'))
-        convolved = tf.nn.convolution(x, kernel, padding="SAME", name='Conv')
-        convolved_shape = list(input_shape)
-        convolved_shape[-1] = num_features
-        # example: input_shape is BHWC, convolved_shape is [B,H,W,num_features]
-        if do_bn:
-            scores = batch_norm(convolved, convolved_shape, phase_train)
-        else:
-            scores = convolved
-        if do_fn:
-            return relu(scores), convolved_shape
-        else:
-            return scores, convolved_shape
-
-
-def relu(x, name='ReLU'):
-    return tf.nn.relu(x, name=name)
-
-
-def pool(x, input_shape, scope='Pool'):
-    with tf.variable_scope(scope):
-        if len(input_shape) == 4:  # 2D
-            nearest_neighbor = nearest_neighbor_2d
-            window_shape = [2, 2]
-        elif len(input_shape) == 5:  # 3D
-            nearest_neighbor = nearest_neighbor_3d
-            window_shape = [2, 2, 2]
-        else:
-            raise Exception('Tensor shape not supported')
+        window_shape = [2]*(len(x.shape)-2)
 
         output = tf.nn.pool(x, window_shape=window_shape, pooling_type="MAX", strides=window_shape, padding="SAME")
-        output_shape = [input_shape[0]] + [i / 2 for i in input_shape[1:-1]] + [input_shape[-1]]
-        mask = nearest_neighbor(output)
-        mask = tf.equal(x, mask)
+        upscaled_pool = upscale(output)
+        mask = tf.equal(x, upscaled_pool)
         mask = tf.cast(mask, tf.float32)
-        return output, output_shape, mask
+        return output, mask
 
 
-def unpool(x, input_shape, mask, scope='Unpool'):
+def unpool(x, mask, scope='Unpool'):
+    x = tf.convert_to_tensor(x)
     with tf.variable_scope(scope):
-        if len(input_shape) == 4:  # 2D
-            nearest_neighbor = nearest_neighbor_2d
-            window_shape = [2, 2]
-        elif len(input_shape) == 5:  # 3D
-            nearest_neighbor = nearest_neighbor_3d
-            window_shape = [2, 2, 2]
-        else:
-            raise Exception('Tensor shape not supported')
-
-        output = nearest_neighbor(x) * mask
-        output_shape = [input_shape[0]] + [i*2 for i in input_shape[1:-1]] + [input_shape[-1]]
-        return output, output_shape
+        upscaled = upscale(x)
+        output = upscaled * mask
+        return output
 
 
 def nearest_neighbor_2d(x):
@@ -175,18 +115,6 @@ def gen_label_occupancy_grid(x, lower_left, upper_right, divisions, num_classes)
     return output
 
 
-def image_to_angles(x, y):
-    theta = -np.arctan2(y, x)
-    phi = np.arctan2(z, x)
-    return theta, phi
-
-
-def velodyne_to_angles(x, y, z):
-    theta = (x - 304)*4/np.pi
-    phi = (88 - y)*4/np.pi
-    return theta, phi
-
-
 class DataReader(object):
     def __init__(self, path, image_shape, lower_left, upper_right, divisions, num_classes):
         self._image_shape = image_shape
@@ -225,7 +153,6 @@ class DataReader(object):
             image = normalize_img(misc.imread(filename))  # Fix brightness and convert to lab colorspace
             image_data[k, :, :, :] = image[0:h:2, 0:w:2, 0:c]
             k += 1
-        Path(os.path.dirname(img_data_loc)).mkdir(exist_ok=True)
         np.save(img_data_loc, image_data)
         return image_data
 
@@ -243,7 +170,6 @@ class DataReader(object):
             label = label['truth']
             label_data[k, :, :] = label[0:h:2, 0:w:2]
             k += 1
-        Path(os.path.dirname(img_labels_loc)).mkdir(exist_ok=True)
         np.save(img_labels_loc, label_data)
         return label_data
 
@@ -266,7 +192,6 @@ class DataReader(object):
             velo_data[k, :, :, :, :] = velo
             k += 1
             print(k)
-        Path(os.path.dirname(vel_data_loc)).mkdir(exist_ok=True)
         np.save(vel_data_loc, velo_data)
         return velo_data
 
@@ -291,7 +216,6 @@ class DataReader(object):
             label_data[k, :, :, :] = velo
             k += 1
             print(k)
-        Path(os.path.dirname(vel_labels_loc)).mkdir(exist_ok=True)
         np.save(vel_labels_loc, label_data)
         return label_data
 
