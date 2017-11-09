@@ -45,6 +45,7 @@ class GenSeg:
         self._seed = seed
         self._graph = tf.Graph()
         with self._graph.as_default():
+            tf.set_random_seed(seed)
             num_features = 32
 
             with tf.variable_scope('Input'):
