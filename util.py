@@ -2,90 +2,12 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-import tensorflow as tf
 import numpy as np
 import os
 
 from scipy import misc, io
 from skimage.exposure import equalize_adapthist
 from skimage.color import rgb2lab, lab2rgb
-
-
-def upscale(x, factor=2):
-    """Upscales the shape of a N-Dimensional tensor by duplicating adjacent entries.
-
-    Args:
-        x:      The tensor to upscale. Only the spatial dimensions (all but first and last dim) are upscaled.
-        factor: The factory by which to upscale. This should be an integer.
-    Returns:
-        The upscaled tensor. Shape will be multiplied by `factor` on each spatial dimension (all but first and last dim)
-    """
-    x = tf.convert_to_tensor(x)
-    num_spatial = len(x.shape)-2
-    # Iterate over spatial dims in reverse order
-    for dim in range(num_spatial, 0, -1):
-        x_shape = x.shape.as_list()
-        print("dim:", dim)
-        print("x shape:", x_shape)
-        x = tf.expand_dims(x, dim+1)
-        tile_multiples = [1] * len(x.shape)
-        tile_multiples[dim+1] = factor
-        print("Tile multiples:", tile_multiples)
-        x = tf.tile(x, tile_multiples)
-        print("Tiled shape:", x.shape)
-        x_shape[0] = -1
-        x_shape[dim] *= factor
-        x = tf.reshape(x, x_shape)
-        print("Final shape:", x.shape)
-    return x
-
-
-def pool(x, scope='Pool'):
-    x = tf.convert_to_tensor(x)
-    with tf.variable_scope(scope):
-        window_shape = [2]*(len(x.shape)-2)
-
-        output = tf.nn.pool(x, window_shape=window_shape, pooling_type="MAX", strides=window_shape, padding="SAME")
-        upscaled_pool = upscale(output)
-        mask = tf.equal(x, upscaled_pool)
-        mask = tf.cast(mask, tf.float32)
-        return output, mask
-
-
-def unpool(x, mask, scope='Unpool'):
-    x = tf.convert_to_tensor(x)
-    with tf.variable_scope(scope):
-        upscaled = upscale(x)
-        output = upscaled * mask
-        return output
-
-
-def nearest_neighbor_2d(x):
-    s = x.get_shape().as_list()
-    h = s[1]
-    w = s[2]
-    c = s[-1]
-    y = tf.tile(x, [1, 1, 2, 1])
-    y = tf.reshape(y, [-1, 2 * h * w, 1, c])
-    y = tf.tile(y, [1, 1, 2, 1])
-    y = tf.reshape(y, [-1, 2 * h, 2 * w, c])
-    return y
-
-
-def nearest_neighbor_3d(x):
-    s = x.get_shape().as_list()
-    n = s[1]
-    c = s[-1]
-    y = tf.transpose(x, [0, 3, 1, 2, 4])
-    y = tf.reshape(y, [-1, n, n * n, c])
-    y = tf.tile(y, [1, 1, 2, 1])
-    y = tf.reshape(y, [-1, 2 * n * n, n, c])
-    y = tf.tile(y, [1, 1, 2, 1])
-    y = tf.reshape(y, [-1, 4 * n * n * n, 1, c])
-    y = tf.tile(y, [1, 1, 2, 1])
-    y = tf.reshape(y, [-1, 2 * n, 2 * n, 2 * n, c])
-    y = tf.transpose(y, [0, 2, 3, 1, 4])
-    return y
 
 
 def gen_occupancy_grid(x, lower_left, upper_right, divisions):
