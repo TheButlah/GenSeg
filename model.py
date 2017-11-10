@@ -61,14 +61,12 @@ class GenSeg:
                 conv1_1, _ = conv(x_norm, num_features, phase_train=self._phase_train, scope='Conv1_1')
                 conv1_2, _ = conv(conv1_1, num_features, phase_train=self._phase_train, scope='Conv1_2')
                 pool1, mask1 = pool(conv1_2, scope='Pool1')
-                drop1 = dropout(pool1, self._phase_train, scope='Drop1')
 
-                conv2_1, _ = conv(drop1, num_features, phase_train=self._phase_train, scope='Conv2_1')
+                conv2_1, _ = conv(pool1, num_features, phase_train=self._phase_train, scope='Conv2_1')
                 conv2_2, _ = conv(conv2_1, num_features, phase_train=self._phase_train, scope='Conv2_2')
                 pool2, mask2 = pool(conv2_2, scope='Pool2')
-                drop2 = dropout(pool2, self._phase_train, scope='Drop2')
 
-                conv3_1, _ = conv(drop2, num_features, phase_train=self._phase_train, scope='Conv3_1')
+                conv3_1, _ = conv(pool2, num_features, phase_train=self._phase_train, scope='Conv3_1')
                 conv3_2, _ = conv(conv3_1, num_features, phase_train=self._phase_train, scope='Conv3_2')
                 pool3, mask3 = pool(conv3_2, scope='Pool3')
                 drop3 = dropout(pool3, self._phase_train, scope='Drop3')
@@ -92,15 +90,13 @@ class GenSeg:
                 unpool7 = unpool(drop6, mask2, scope='Unpool7')
                 conv7_1, _ = conv(unpool7, num_features, phase_train=self._phase_train, scope='Conv7_1')
                 conv7_2, _ = conv(conv7_1, num_features, phase_train=self._phase_train, scope='Conv7_2')
-                drop7 = dropout(conv7_2, self._phase_train, scope='Drop7')
 
-                unpool8 = unpool(drop7, mask1, scope='Unpool8')
+                unpool8 = unpool(conv7_2, mask1, scope='Unpool8')
                 conv8_1, _ = conv(unpool8, num_features, phase_train=self._phase_train, scope='Conv8_1')
                 conv8_2, _ = conv(conv8_1, num_features, phase_train=self._phase_train, scope='Conv8_2')
-                drop8 = dropout(conv8_2, self._phase_train, scope='Drop8')
 
             with tf.variable_scope('Softmax'):
-                scores, _ = conv(drop8, num_classes, phase_train=None, size=1, scope='Scores')
+                scores, _ = conv(conv8_2, num_classes, phase_train=None, size=1, scope='Scores')
                 self._y_hat = tf.nn.softmax(scores, name='Y-Hat')  # Operates on last dimension
 
             with tf.variable_scope('Pipelining'):
