@@ -16,17 +16,18 @@ def batch_norm(x, phase_train, decay=0.9, custom_inits=None, scope='BN'):
     Ref.: https://arxiv.org/pdf/1502.03167.pdf
 
     Args:
-        x:             Tensor,  shaped [batch, features...] allowing it do be used with Conv or FC layers of any shape.
-        phase_train:   Boolean tensor, true indicates training phase.
-        decay:         Float. The decay to use for the exponential moving average.
-        custom_inits:  Dict from strings to functions that take a shape and return a tensor. These functions
-                       are used to initialize the corresponding variable. If a variable is not in the dict, then it is
-                       initialized with the default initializer for that variable. If None, then default initial
-        scope:         String or VariableScope to use as the variable scope.
+        x:            Tensor,  shaped [batch, features...] allowing it do be used with Conv or FC layers of any shape.
+        phase_train:  Boolean tensor, true indicates training phase.
+        decay:        Float. The decay to use for the exponential moving average.
+        custom_inits: Dict from strings to functions that take a shape and return a tensor. These functions
+                      are used to initialize the corresponding variable. If a variable is not in the dict, then it is
+                      initialized with the default initializer for that variable. If None, then default initial
+        scope:        String or VariableScope to use as the variable scope.
     Returns:
-        normed, vars:  `normed` is a tensor of the batch-normalized features, and has same shape as `input`.
-                       `vars` is a dict of the variables.
+        normed, vars: `normed` is a tensor of the batch-normalized features, and has same shape as `input`.
+                      `vars` is a dict of the variables.
     """
+    x = tf.convert_to_tensor(x)
     x_shape = x.shape.as_list()  # Don't deal with a TensorShape and instead use a list
 
     # Check to ensure the minimum shape is met and there are no unknown dims in important places

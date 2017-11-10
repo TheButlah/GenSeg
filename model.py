@@ -55,7 +55,7 @@ class GenSeg:
 
             with tf.variable_scope('Preprocessing'):
                 # We want to normalize
-                x_norm = batch_norm(self._x, x_shape, self._phase_train, scope='X-Norm')
+                x_norm, _ = batch_norm(self._x, self._phase_train, scope='X-Norm')
 
             with tf.variable_scope('Encoder'):
                 conv1_1, _ = conv(x_norm, num_features, phase_train=self._phase_train, scope='Conv1_1')
@@ -69,14 +69,14 @@ class GenSeg:
                 drop2 = dropout(pool2, self._phase_train, scope='Drop2')
 
                 conv3_1, _ = conv(drop2, num_features, phase_train=self._phase_train, scope='Conv3_1')
-                conv3_2, _ = conv(conv1_1, num_features, phase_train=self._phase_train, scope='Conv3_2')
-                pool3, mask3 = pool(conv1_2, scope='Pool3')
-                drop3 = dropout(pool1, self._phase_train, scope='Drop3')
+                conv3_2, _ = conv(conv3_1, num_features, phase_train=self._phase_train, scope='Conv3_2')
+                pool3, mask3 = pool(conv3_2, scope='Pool3')
+                drop3 = dropout(pool3, self._phase_train, scope='Drop3')
 
                 conv4_1, _ = conv(drop3, num_features, phase_train=self._phase_train, scope='Conv4_1')
                 conv4_2, _ = conv(conv4_1, num_features, phase_train=self._phase_train, scope='Conv4_2')
                 pool4, mask4 = pool(conv4_2, scope='Pool4')
-                drop4 = dropout(pool1, self._phase_train, scope='Drop4')
+                drop4 = dropout(pool4, self._phase_train, scope='Drop4')
 
             with tf.variable_scope('Decoder'):
                 unpool5 = unpool(drop4, mask4, scope='Unpool5')
