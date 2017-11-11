@@ -77,29 +77,41 @@ class GenSeg:
                 pool4, mask4 = pool(conv4_3, scope='Pool4')
                 drop4 = dropout(pool4, self._phase_train, scope='Drop4')
 
-            with tf.variable_scope('Decoder'):
-                unpool5 = unpool(drop4, mask4, scope='Unpool5')
-                conv5_1, _ = conv(unpool5, 512, phase_train=self._phase_train, scope='Conv5_1')
+                conv5_1, _ = conv(drop4, 512, phase_train=self._phase_train, scope='Conv5_1')
                 conv5_2, _ = conv(conv5_1, 512, phase_train=self._phase_train, scope='Conv5_2')
                 conv5_3, _ = conv(conv5_2, 512, phase_train=self._phase_train, scope='Conv5_3')
-                drop5 = dropout(conv5_3, self._phase_train, scope='Drop5')
+                pool5, mask5 = pool(conv5_3, scope='Pool4')
+                drop5 = dropout(pool5, self._phase_train, scope='Drop4')
 
-                unpool6 = unpool(drop5, mask3, scope='Unpool6')
-                conv6_1, _ = conv(unpool6, 256, phase_train=self._phase_train, scope='Conv6_1')
-                conv6_2, _ = conv(conv6_1, 256, phase_train=self._phase_train, scope='Conv6_2')
-                conv6_3, _ = conv(conv6_2, 256, phase_train=self._phase_train, scope='Conv6_3')
+            with tf.variable_scope('Decoder'):
+                unpool6 = unpool(drop5, mask5, scope='Unpool6')
+                conv6_1, _ = conv(unpool6, 512, phase_train=self._phase_train, scope='Conv6_1')
+                conv6_2, _ = conv(conv6_1, 512, phase_train=self._phase_train, scope='Conv6_2')
+                conv6_3, _ = conv(conv6_2, 512, phase_train=self._phase_train, scope='Conv6_3')
                 drop6 = dropout(conv6_3, self._phase_train, scope='Drop6')
 
-                unpool7 = unpool(drop6, mask2, scope='Unpool7')
-                conv7_1, _ = conv(unpool7, 128, phase_train=self._phase_train, scope='Conv7_1')
-                conv7_2, _ = conv(conv7_1, 128, phase_train=self._phase_train, scope='Conv7_2')
+                unpool7 = unpool(drop6, mask4, scope='Unpool7')
+                conv7_1, _ = conv(unpool7, 512, phase_train=self._phase_train, scope='Conv7_1')
+                conv7_2, _ = conv(conv7_1, 512, phase_train=self._phase_train, scope='Conv7_2')
+                conv7_3, _ = conv(conv7_2, 512, phase_train=self._phase_train, scope='Conv7_3')
+                drop7 = dropout(conv7_3, self._phase_train, scope='Drop7')
 
-                unpool8 = unpool(conv7_2, mask1, scope='Unpool8')
-                conv8_1, _ = conv(unpool8, 64, phase_train=self._phase_train, scope='Conv8_1')
-                conv8_2, _ = conv(conv8_1, 64, phase_train=self._phase_train, scope='Conv8_2')
+                unpool8 = unpool(drop7, mask3, scope='Unpool8')
+                conv8_1, _ = conv(unpool8, 256, phase_train=self._phase_train, scope='Conv8_1')
+                conv8_2, _ = conv(conv8_1, 256, phase_train=self._phase_train, scope='Conv8_2')
+                conv8_3, _ = conv(conv8_2, 256, phase_train=self._phase_train, scope='Conv8_3')
+                drop8 = dropout(conv8_3, self._phase_train, scope='Drop8')
+
+                unpool9 = unpool(drop8, mask2, scope='Unpool9')
+                conv9_1, _ = conv(unpool9, 128, phase_train=self._phase_train, scope='Conv9_1')
+                conv9_2, _ = conv(conv9_1, 128, phase_train=self._phase_train, scope='Conv9_2')
+
+                unpool10 = unpool(conv9_2, mask1, scope='Unpool10')
+                conv10_1, _ = conv(unpool10, 64, phase_train=self._phase_train, scope='Conv10_1')
+                conv10_2, _ = conv(conv10_1, 64, phase_train=self._phase_train, scope='Conv10_2')
 
             with tf.variable_scope('Softmax'):
-                scores, _ = conv(conv8_2, num_classes, phase_train=None, size=1, scope='Scores')
+                scores, _ = conv(conv10_2, num_classes, phase_train=None, size=1, scope='Scores')
                 self._y_hat = tf.nn.softmax(scores, name='Y-Hat')  # Operates on last dimension
 
             with tf.variable_scope('Pipelining'):
