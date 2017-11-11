@@ -81,18 +81,18 @@ class GenSeg:
                 unpool5 = unpool(drop4, mask4, scope='Unpool5')
                 conv5_1, _ = conv(unpool5, 512, phase_train=self._phase_train, scope='Conv5_1')
                 conv5_2, _ = conv(conv5_1, 512, phase_train=self._phase_train, scope='Conv5_2')
-                conv5_3, _ = conv(conv5_2, 512, phase_train=self._phase_train, scope='Conv5_3')
+                conv5_3, _ = conv(conv5_2, 256, phase_train=self._phase_train, scope='Conv5_3')
                 drop5 = dropout(conv5_3, self._phase_train, scope='Drop5')
 
                 unpool6 = unpool(drop5, mask3, scope='Unpool6')
                 conv6_1, _ = conv(unpool6, 256, phase_train=self._phase_train, scope='Conv6_1')
                 conv6_2, _ = conv(conv6_1, 256, phase_train=self._phase_train, scope='Conv6_2')
-                conv6_3, _ = conv(conv6_2, 256, phase_train=self._phase_train, scope='Conv6_3')
+                conv6_3, _ = conv(conv6_2, 128, phase_train=self._phase_train, scope='Conv6_3')
                 drop6 = dropout(conv6_3, self._phase_train, scope='Drop6')
 
                 unpool7 = unpool(drop6, mask2, scope='Unpool7')
                 conv7_1, _ = conv(unpool7, 128, phase_train=self._phase_train, scope='Conv7_1')
-                conv7_2, _ = conv(conv7_1, 128, phase_train=self._phase_train, scope='Conv7_2')
+                conv7_2, _ = conv(conv7_1, 64, phase_train=self._phase_train, scope='Conv7_2')
 
                 unpool8 = unpool(conv7_2, mask1, scope='Unpool8')
                 conv8_1, _ = conv(unpool8, 64, phase_train=self._phase_train, scope='Conv8_1')
