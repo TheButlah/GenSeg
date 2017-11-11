@@ -104,7 +104,7 @@ def dropout(x, phase_train, keep_prob=0.75, scope='Dropout'):
 drop = dropout
 
 
-def convolutional(x, num_features, size=3, activation=tf.nn.relu, phase_train=None, custom_inits=None, scope='Conv'):
+def convolutional(x, num_features, size=3, activation=tf.nn.leaky_relu, phase_train=None, custom_inits=None, scope='Conv'):
     """"Creates a convolutional Layer.
 
     Works on n spatial dimensions, as long as 1<=n<=3 due to limitations in `tf.nn.convolution`. Optionally performs
@@ -263,7 +263,7 @@ def unpool(x, mask, factor=2, scope='Unpool'):
         return output
 
 
-def fully_connected(x, num_features, activation=tf.nn.relu, phase_train=None, custom_inits=None, scope='FC'):
+def fully_connected(x, num_features, activation=tf.nn.leaky_relu, phase_train=None, custom_inits=None, scope='FC'):
     """Creates a fully connected (dense) layer.
 
     Optionally performs batch normalization and also intelligently initializes weights. Will flatten `input` correctly.
