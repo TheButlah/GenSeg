@@ -95,8 +95,8 @@ class GenSeg:
                 conv7_2, _ = conv(conv7_1, 128, phase_train=self._phase_train, scope='Conv7_2')
 
                 unpool8 = unpool(conv7_2, mask1, scope='Unpool8')
-                conv8_1, _ = conv(unpool8, 256, phase_train=self._phase_train, scope='Conv8_1')
-                conv8_2, _ = conv(conv8_1, 256, phase_train=self._phase_train, scope='Conv8_2')
+                conv8_1, _ = conv(unpool8, 64, phase_train=self._phase_train, scope='Conv8_1')
+                conv8_2, _ = conv(conv8_1, 64, phase_train=self._phase_train, scope='Conv8_2')
 
             with tf.variable_scope('Softmax'):
                 scores, _ = conv(conv8_2, num_classes, phase_train=None, size=1, scope='Scores')
