@@ -96,10 +96,10 @@ class GenSeg:
 
                 unpool8 = unpool(conv7_2, mask1, scope='Unpool8')
                 conv8_1, _ = conv(unpool8, 64, phase_train=self._phase_train, scope='Conv8_1')
-                conv8_2, _ = conv(conv8_1, 64, phase_train=self._phase_train, scope='Conv8_2')
+                # There is not a `conv8_2` here because that role is taken by `scores`.
 
             with tf.variable_scope('Softmax'):
-                scores, _ = conv(conv8_2, num_classes, phase_train=None, size=1, scope='Scores')
+                scores, _ = conv(conv8_1, num_classes, phase_train=None, size=1, scope='Scores')
                 self._y_hat = tf.nn.softmax(scores, name='Y-Hat')  # Operates on last dimension
 
             with tf.variable_scope('Pipelining'):
