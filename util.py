@@ -45,10 +45,10 @@ class DataReader(object):
         self._divisions = divisions
         self._num_classes = num_classes
         self._path = os.path.abspath(path)
-        self._image_data = self.get_filenames(path + '/image_data/training/')
-        self._image_labels = self.get_filenames(path + '/image_labels/training/')
-        self._velodyne_data = self.get_filenames(path + '/velodyne_data/training/')
-        self._velodyne_labels = self.get_filenames(path + '/velodyne_labels/training/')
+        self._image_data = self.get_filenames(path + '/image_data/testing/')
+        self._image_labels = self.get_filenames(path + '/image_labels/testing/')
+        self._velodyne_data = self.get_filenames(path + '/velodyne_data/testing/')
+        self._velodyne_labels = self.get_filenames(path + '/velodyne_labels/testing/')
 
     def get_filenames(self, path):
         data_paths = os.listdir(path)
@@ -65,11 +65,12 @@ class DataReader(object):
     def get_image_data(self):
         h, w, c = self._image_shape
         shape = (len(self._image_labels), h // 2, w // 2, c)
-        img_data_loc = os.path.abspath('processed/img_data.npy')
-        os.makedirs(os.path.dirname(img_data_loc), exist_ok=True)
+        img_data_loc = make_path('processed/img_data.npy')
+
         if os.path.exists(img_data_loc):
             image_data = np.load(img_data_loc)
             return image_data
+
         image_data = np.empty(shape)
         k = 0
         for filename in self._image_data:
@@ -82,11 +83,12 @@ class DataReader(object):
     def get_image_labels(self):
         h, w, _ = self._image_shape
         shape = (len(self._image_labels), h // 2, w // 2)
-        img_labels_loc = os.path.abspath('processed/img_labels.npy')
-        os.makedirs(os.path.dirname(img_labels_loc), exist_ok=True)
+        img_labels_loc = make_path('processed/img_labels.npy')
+
         if os.path.exists(img_labels_loc):
             label_data = np.load(img_labels_loc)
             return label_data
+
         label_data = np.empty(shape)
         k = 0
         for filename in self._image_labels:
@@ -100,11 +102,12 @@ class DataReader(object):
     def get_velodyne_data(self):
         shape = np.append(self._divisions, 1)
         shape = np.insert(shape, 0, len(self._velodyne_data))
-        vel_data_loc = os.path.abspath('processed/vel_data.npy')
-        os.makedirs(os.path.dirname(vel_data_loc), exist_ok=True)
+        vel_data_loc = make_path('processed/vel_data.npy')
+
         if os.path.exists(vel_data_loc):
             velo_data = np.load(vel_data_loc)
             return velo_data
+
         velo_data = np.empty(shape)
         k = 0
         for filename in self._velodyne_data[:1]:
@@ -122,11 +125,12 @@ class DataReader(object):
 
     def get_velodyne_labels(self):
         shape = np.insert(self._divisions, 0, len(self._velodyne_data))
-        vel_labels_loc = os.path.abspath('processed/vel_labels.npy')
-        os.makedirs(os.path.dirname(vel_labels_loc), exist_ok=True)
+        vel_labels_loc = make_path('processed/vel_labels.npy')
+
         if os.path.exists(vel_labels_loc):
             label_data = np.load(vel_labels_loc)
             return label_data
+
         label_data = np.empty(shape)
         k = 0
         for (data_filename, label_filename) in zip(self._velodyne_data, self._velodyne_labels):
@@ -196,6 +200,20 @@ def index_to_real(coord, ll, ur, divisions):
 def real_to_index(coord, ll, ur, divisions):
     interval = (ur-ll)/divisions
     return np.floor_divide((coord - ll), interval)
+
+
+def make_path(file):
+    """Makes the directories required for `file` to reside in.
+
+    Args:
+        file: A string giving the path to the file.
+    Returns:
+        The absolute path of the original file.
+    """
+    directory = os.path.dirname(file)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    return os.path.abspath(file)
 
 # dr = DataReader('/home/vdd6/Desktop/gen_seg_data', (374, 1238, 3))
 # res = dr.get_image_data()
