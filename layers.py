@@ -71,7 +71,7 @@ def batch_norm(x, phase_train, decay=0.9, custom_inits=None, scope='BN'):
 bn = batch_norm
 
 
-def dropout(x, phase_train, keep_prob=0.75, scope='Dropout'):
+def dropout(x, phase_train, keep_prob=0.5, scope='Dropout'):
     """Creates a dropout layer.
 
     Used to regularize Conv and FC layers by preventing co-adaptation of neurons. Works on n-dimensional data.
