@@ -66,6 +66,7 @@ class DataReader(object):
         h, w, c = self._image_shape
         shape = (len(self._image_labels), h // 2, w // 2, c)
         img_data_loc = os.path.abspath('processed/img_data.npy')
+        os.makedirs(os.path.dirname(img_data_loc), exist_ok=True)
         if os.path.exists(img_data_loc):
             image_data = np.load(img_data_loc)
             return image_data
@@ -82,6 +83,7 @@ class DataReader(object):
         h, w, _ = self._image_shape
         shape = (len(self._image_labels), h // 2, w // 2)
         img_labels_loc = os.path.abspath('processed/img_labels.npy')
+        os.makedirs(os.path.dirname(img_labels_loc), exist_ok=True)
         if os.path.exists(img_labels_loc):
             label_data = np.load(img_labels_loc)
             return label_data
@@ -99,6 +101,7 @@ class DataReader(object):
         shape = np.append(self._divisions, 1)
         shape = np.insert(shape, 0, len(self._velodyne_data))
         vel_data_loc = os.path.abspath('processed/vel_data.npy')
+        os.makedirs(os.path.dirname(vel_data_loc), exist_ok=True)
         if os.path.exists(vel_data_loc):
             velo_data = np.load(vel_data_loc)
             return velo_data
@@ -120,6 +123,7 @@ class DataReader(object):
     def get_velodyne_labels(self):
         shape = np.insert(self._divisions, 0, len(self._velodyne_data))
         vel_labels_loc = os.path.abspath('processed/vel_labels.npy')
+        os.makedirs(os.path.dirname(vel_labels_loc), exist_ok=True)
         if os.path.exists(vel_labels_loc):
             label_data = np.load(vel_labels_loc)
             return label_data
