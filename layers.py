@@ -88,17 +88,11 @@ def dropout(x, phase_train, keep_prob=0.5, scope='Dropout'):
         A tensor with the neurons dropped.
     """
     with tf.variable_scope(scope):
-        def train():
-            # Figure out `shape` tensor for the dropout function
-            dims = tf.unstack(tf.shape(x))
-            dims[1:-1] = [1] * (len(dims) - 2)  # set all spatial dims to 1 so that they are all dropped together
-            shape = tf.stack(dims)  # example: [batch, 1, 1, features]
-            return tf.nn.dropout(x, keep_prob, shape, name='Train')
-
-        def test():
-            return tf.identity(x, name='Inference')
-
-        return tf.identity(tf.cond(phase_train, train, test), name='Dropped')
+        # Figure out `shape` tensor for the dropout function
+        dims = tf.unstack(tf.shape(x))
+        dims[1:-1] = [1] * (len(dims) - 2)  # set all spatial dims to 1 so that they are all dropped together
+        shape = tf.stack(dims)  # example: [batch, 1, 1, features]
+        return tf.nn.dropout(x, keep_prob, shape, name='Train')
 
 
 drop = dropout
