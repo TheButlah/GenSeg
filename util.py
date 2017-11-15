@@ -1,151 +1,13 @@
-from pathlib import Path
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
 
-import tensorflow as tf
 import numpy as np
 import os
 
 from scipy import misc, io
 from skimage.exposure import equalize_adapthist
 from skimage.color import rgb2lab, lab2rgb
-
-
-def batch_norm(x, shape, phase_train, scope='BN'):
-    """
-    Batch normalization on convolutional maps.
-    Ref.: http://stackoverflow.com/questions/33949786/how-could-i-use-batch-normalization-in-tensorflow
-    Note: The original author's code has been modified to generalize the spatial dimensions of the input tensor.
-
-    Args:
-        x:           Tensor,  B...C input maps (e.g. BHWC or BXYZC)
-        shape:       Tuple, shape of input
-        phase_train: boolean tf.Variable, true indicates training phase
-        scope:       string, variable scope
-
-    Returns:
-        normed:      batch-normalized maps
-    """
-    with tf.variable_scope(scope):
-        n_out = shape[-1]  # depth of input maps
-        beta = tf.Variable(tf.constant(0.0, shape=[n_out]),
-                           name='Beta', trainable=True)
-        gamma = tf.Variable(tf.constant(1.0, shape=[n_out]),
-                            name='Gamma', trainable=True)
-        batch_mean, batch_var = tf.nn.moments(x, list(range(len(shape[:-1]))), name='Moments')
-        ema = tf.train.ExponentialMovingAverage(decay=0.5)
-
-        def mean_var_with_update():
-            ema_apply_op = ema.apply([batch_mean, batch_var])
-            with tf.control_dependencies([ema_apply_op]):
-                return tf.identity(batch_mean), tf.identity(batch_var)
-
-        mean, var = tf.cond(phase_train,
-                            mean_var_with_update,
-                            lambda: (ema.average(batch_mean), ema.average(batch_var)))
-        normed = tf.nn.batch_normalization(x, mean, var, beta, gamma, 1e-3)
-    return normed
-
-
-def dropout(x, phase_train, keep_prob=0.5, seed=None, name='Dropout'):
-    with tf.variable_scope(name):
-
-        def train():
-            dims = tf.unstack(tf.shape(x))
-            dims[1:-1] = [1] * (len(dims) - 2)
-            shape = tf.stack(dims)  # [batch, 1, 1, ..., 1, features] so that all spatial dims are dropped together
-            return tf.nn.dropout(x, keep_prob, shape, seed=seed, name='Train-Output')
-
-        def test():
-            return tf.identity(x, name='Test-Output')
-
-        return tf.cond(phase_train, train, test)
-
-
-def conv(x, input_shape, num_features, phase_train, do_bn=True, do_fn=True, size=3, seed=None, scope='Conv'):
-    with tf.variable_scope(scope):
-        kernel_shape = [size]*(len(input_shape)-2)
-        kernel_shape.append(input_shape[-1])
-        kernel_shape.append(num_features)
-        # example: input_shape is BHWC, kernel_shape is [3,3,D,num_features]
-        kernel = tf.Variable(tf.truncated_normal(kernel_shape, seed=seed, name='Kernel'))
-        convolved = tf.nn.convolution(x, kernel, padding="SAME", name='Conv')
-        convolved_shape = list(input_shape)
-        convolved_shape[-1] = num_features
-        # example: input_shape is BHWC, convolved_shape is [B,H,W,num_features]
-        if do_bn:
-            scores = batch_norm(convolved, convolved_shape, phase_train)
-        else:
-            scores = convolved
-        if do_fn:
-            return relu(scores), convolved_shape
-        else:
-            return scores, convolved_shape
-
-
-def relu(x, name='ReLU'):
-    return tf.nn.relu(x, name=name)
-
-
-def pool(x, input_shape, scope='Pool'):
-    with tf.variable_scope(scope):
-        if len(input_shape) == 4:  # 2D
-            nearest_neighbor = nearest_neighbor_2d
-            window_shape = [2, 2]
-        elif len(input_shape) == 5:  # 3D
-            nearest_neighbor = nearest_neighbor_3d
-            window_shape = [2, 2, 2]
-        else:
-            raise Exception('Tensor shape not supported')
-
-        output = tf.nn.pool(x, window_shape=window_shape, pooling_type="MAX", strides=window_shape, padding="SAME")
-        output_shape = [input_shape[0]] + [i / 2 for i in input_shape[1:-1]] + [input_shape[-1]]
-        mask = nearest_neighbor(output)
-        mask = tf.equal(x, mask)
-        mask = tf.cast(mask, tf.float32)
-        return output, output_shape, mask
-
-
-def unpool(x, input_shape, mask, scope='Unpool'):
-    with tf.variable_scope(scope):
-        if len(input_shape) == 4:  # 2D
-            nearest_neighbor = nearest_neighbor_2d
-            window_shape = [2, 2]
-        elif len(input_shape) == 5:  # 3D
-            nearest_neighbor = nearest_neighbor_3d
-            window_shape = [2, 2, 2]
-        else:
-            raise Exception('Tensor shape not supported')
-
-        output = nearest_neighbor(x) * mask
-        output_shape = [input_shape[0]] + [i*2 for i in input_shape[1:-1]] + [input_shape[-1]]
-        return output, output_shape
-
-
-def nearest_neighbor_2d(x):
-    s = x.get_shape().as_list()
-    h = s[1]
-    w = s[2]
-    c = s[-1]
-    y = tf.tile(x, [1, 1, 2, 1])
-    y = tf.reshape(y, [-1, 2 * h * w, 1, c])
-    y = tf.tile(y, [1, 1, 2, 1])
-    y = tf.reshape(y, [-1, 2 * h, 2 * w, c])
-    return y
-
-
-def nearest_neighbor_3d(x):
-    s = x.get_shape().as_list()
-    n = s[1]
-    c = s[-1]
-    y = tf.transpose(x, [0, 3, 1, 2, 4])
-    y = tf.reshape(y, [-1, n, n * n, c])
-    y = tf.tile(y, [1, 1, 2, 1])
-    y = tf.reshape(y, [-1, 2 * n * n, n, c])
-    y = tf.tile(y, [1, 1, 2, 1])
-    y = tf.reshape(y, [-1, 4 * n * n * n, 1, c])
-    y = tf.tile(y, [1, 1, 2, 1])
-    y = tf.reshape(y, [-1, 2 * n, 2 * n, 2 * n, c])
-    y = tf.transpose(y, [0, 2, 3, 1, 4])
-    return y
 
 
 def gen_occupancy_grid(x, lower_left, upper_right, divisions):
@@ -175,18 +37,6 @@ def gen_label_occupancy_grid(x, lower_left, upper_right, divisions, num_classes)
     return output
 
 
-def image_to_angles(x, y):
-    theta = -np.arctan2(y, x)
-    phi = np.arctan2(z, x)
-    return theta, phi
-
-
-def velodyne_to_angles(x, y, z):
-    theta = (x - 304)*4/np.pi
-    phi = (88 - y)*4/np.pi
-    return theta, phi
-
-
 class DataReader(object):
     def __init__(self, path, image_shape, lower_left, upper_right, divisions, num_classes):
         self._image_shape = image_shape
@@ -195,10 +45,10 @@ class DataReader(object):
         self._divisions = divisions
         self._num_classes = num_classes
         self._path = os.path.abspath(path)
-        self._image_data = self.get_filenames(path + '/image_data/training/')
-        self._image_labels = self.get_filenames(path + '/image_labels/training/')
-        self._velodyne_data = self.get_filenames(path + '/velodyne_data/training/')
-        self._velodyne_labels = self.get_filenames(path + '/velodyne_labels/training/')
+        self._image_data = self.get_filenames(path + '/image_data/testing/')
+        self._image_labels = self.get_filenames(path + '/image_labels/testing/')
+        self._velodyne_data = self.get_filenames(path + '/velodyne_data/testing/')
+        self._velodyne_labels = self.get_filenames(path + '/velodyne_labels/testing/')
 
     def get_filenames(self, path):
         data_paths = os.listdir(path)
@@ -215,27 +65,30 @@ class DataReader(object):
     def get_image_data(self):
         h, w, c = self._image_shape
         shape = (len(self._image_labels), h // 2, w // 2, c)
-        img_data_loc = 'processed/img_data.npy'
+        img_data_loc = make_path('processed/img_data.npy')
+
         if os.path.exists(img_data_loc):
             image_data = np.load(img_data_loc)
             return image_data
+
         image_data = np.empty(shape)
         k = 0
         for filename in self._image_data:
             image = normalize_img(misc.imread(filename))  # Fix brightness and convert to lab colorspace
             image_data[k, :, :, :] = image[0:h:2, 0:w:2, 0:c]
             k += 1
-        Path(os.path.dirname(img_data_loc)).mkdir(exist_ok=True)
         np.save(img_data_loc, image_data)
         return image_data
 
     def get_image_labels(self):
         h, w, _ = self._image_shape
         shape = (len(self._image_labels), h // 2, w // 2)
-        img_labels_loc = 'processed/img_labels.npy'
+        img_labels_loc = make_path('processed/img_labels.npy')
+
         if os.path.exists(img_labels_loc):
             label_data = np.load(img_labels_loc)
             return label_data
+
         label_data = np.empty(shape)
         k = 0
         for filename in self._image_labels:
@@ -243,17 +96,18 @@ class DataReader(object):
             label = label['truth']
             label_data[k, :, :] = label[0:h:2, 0:w:2]
             k += 1
-        Path(os.path.dirname(img_labels_loc)).mkdir(exist_ok=True)
         np.save(img_labels_loc, label_data)
         return label_data
 
     def get_velodyne_data(self):
         shape = np.append(self._divisions, 1)
         shape = np.insert(shape, 0, len(self._velodyne_data))
-        vel_data_loc = 'processed/vel_data.npy'
+        vel_data_loc = make_path('processed/vel_data.npy')
+
         if os.path.exists(vel_data_loc):
             velo_data = np.load(vel_data_loc)
             return velo_data
+
         velo_data = np.empty(shape)
         k = 0
         for filename in self._velodyne_data[:1]:
@@ -266,16 +120,17 @@ class DataReader(object):
             velo_data[k, :, :, :, :] = velo
             k += 1
             print(k)
-        Path(os.path.dirname(vel_data_loc)).mkdir(exist_ok=True)
         np.save(vel_data_loc, velo_data)
         return velo_data
 
     def get_velodyne_labels(self):
         shape = np.insert(self._divisions, 0, len(self._velodyne_data))
-        vel_labels_loc = 'processed/vel_labels.npy'
+        vel_labels_loc = make_path('processed/vel_labels.npy')
+
         if os.path.exists(vel_labels_loc):
             label_data = np.load(vel_labels_loc)
             return label_data
+
         label_data = np.empty(shape)
         k = 0
         for (data_filename, label_filename) in zip(self._velodyne_data, self._velodyne_labels):
@@ -291,7 +146,6 @@ class DataReader(object):
             label_data[k, :, :, :] = velo
             k += 1
             print(k)
-        Path(os.path.dirname(vel_labels_loc)).mkdir(exist_ok=True)
         np.save(vel_labels_loc, label_data)
         return label_data
 
@@ -349,6 +203,20 @@ def index_to_real(coord, ll, ur, divisions):
 def real_to_index(coord, ll, ur, divisions):
     interval = (ur-ll)/divisions
     return np.floor_divide((coord - ll), interval)
+
+
+def make_path(file):
+    """Makes the directories required for `file` to reside in.
+
+    Args:
+        file: A string giving the path to the file.
+    Returns:
+        The absolute path of the original file.
+    """
+    directory = os.path.dirname(file)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    return os.path.abspath(file)
 
 # dr = DataReader('/home/vdd6/Desktop/gen_seg_data', (374, 1238, 3))
 # res = dr.get_image_data()
