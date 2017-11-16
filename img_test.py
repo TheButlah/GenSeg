@@ -11,10 +11,11 @@ from pylab import rcParams
 num_classes = 6
 datareader_params = ('data/', (352, 1216, 3), np.array([0, -32, -16]), np.array([64, 32, 16]), np.array([64, 64, 64]), num_classes)
 
+batch_size = 6
 
 def main():
     number = int(sys.argv[1])
-    name = 'saved/Dropout-2-11-17.ckpt'
+    name = 'saved/VGG-50.ckpt'
     if number is 2: test2(name)
     elif number is 3: test3(name)
     elif number is 4: test4(name)
@@ -120,7 +121,8 @@ def test4(name):
     func = np.vectorize(original_to_label)
     y = func(y)
     n, _, _, _ = x.shape
-    batch_size = 30
+
+    t = 6
 
     model = GenSeg(input_shape=input_shape, num_classes=num_classes, load_model=name)
 
@@ -131,7 +133,13 @@ def test4(name):
     for i in range(0, n, batch_size):
         batch_data = x[i:i + batch_size, :, :, :]
         batch_labels = y[i:i + batch_size, :, :]
-        results = model.apply(batch_data)
+        results = np.empty
+        for i in range(t):
+            if results == np.empty:
+                results = model.apply(batch_data)
+            else:
+                results += model.apply(batch_data)
+        results = results/t
         results = np.argmax(results, axis=-1)
         for img in results:
             colored = np.empty(input_shape[1:], dtype=np.uint8)
@@ -141,7 +149,7 @@ def test4(name):
                 f = plt.imshow(colored)
             else:
                 f.set_data(colored)
-            plt.pause(.05)
+            plt.pause(.01)
             plt.draw()
             #out.write(colored.transpose().astype(np.uint8))
 
@@ -158,7 +166,6 @@ def test3(name):
     func = np.vectorize(original_to_label)
     y = func(y)
     n, _, _, _ = x.shape
-    batch_size = 30
 
     model = GenSeg(input_shape=input_shape, num_classes=num_classes, load_model=name)
 
@@ -234,7 +241,6 @@ def test1(name):
     func = np.vectorize(original_to_label)
     y = func(y)
     n, _, _, _ = x.shape
-    batch_size = 20
     iterations = sys.maxsize
 
     model = GenSeg(input_shape=input_shape, num_classes=num_classes, load_model=name)
