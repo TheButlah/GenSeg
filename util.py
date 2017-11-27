@@ -45,10 +45,10 @@ class DataReader(object):
         self._divisions = divisions
         self._num_classes = num_classes
         self._path = os.path.abspath(path)
-        self._image_data = self.get_filenames(path + '/image_data/testing/')
-        self._image_labels = self.get_filenames(path + '/image_labels/testing/')
-        self._velodyne_data = self.get_filenames(path + '/velodyne_data/testing/')
-        self._velodyne_labels = self.get_filenames(path + '/velodyne_labels/testing/')
+        self._image_data = self.get_filenames(path + '/image_data/training/')
+        self._image_labels = self.get_filenames(path + '/image_labels/training/')
+        self._velodyne_data = self.get_filenames(path + '/velodyne_data/training/')
+        self._velodyne_labels = self.get_filenames(path + '/velodyne_labels/training/')
 
     def get_filenames(self, path):
         data_paths = os.listdir(path)
