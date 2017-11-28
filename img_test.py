@@ -15,7 +15,7 @@ batch_size = 6
 
 def main():
     number = int(sys.argv[1])
-    name = 'saved/VGG-50.ckpt'
+    name = 'saved/VGG-75/VGG-75.ckpt'
     if number is 2: test2(name)
     elif number is 3: test3(name)
     elif number is 4: test4(name)
