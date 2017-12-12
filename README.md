@@ -11,8 +11,7 @@ implementation of GenSeg currently works only for 1<=N<=3 spatial
 dimensions. Hence, 3D data such as LiDAR is supported, as well as more
 conventional data such as images, but higher dimensional data such as 3D time series
 data will not be supported until TensorFlow adds support for 4D and
-higher convolutions. If/When they do, this architecture can easily then
-be made to support those higher dimensions.
+higher convolutions. If/When they do, this architecture should automatically work.
 
 The output of GenSeg is a set of class probabilities for each
 pixel/voxel/n-dimensional point in the image being segmented. This
